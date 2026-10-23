@@ -792,9 +792,20 @@ function clearBadge(){try{navigator.clearAppBadge&&navigator.clearAppBadge()}cat
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearBadge()});
 
 /* ---------- login & setup ---------- */
+const PHONE_DOMAIN="@telefon.diarikasturi.app";
+function identToEmail(v){
+  v=(v||"").trim();if(!v)return null;
+  if(v.includes("@"))return v.toLowerCase();
+  let d=v.replace(/\D/g,"");
+  if(d.startsWith("0"))d="6"+d;else if(!d.startsWith("60")&&d.length>=9&&d.length<=10)d="60"+d;
+  if(d.length<10||d.length>13)return null;
+  return d+PHONE_DOMAIN;
+}
+function displayIdent(e){if(!e)return"";if(e.endsWith(PHONE_DOMAIN)){const d=e.slice(0,-PHONE_DOMAIN.length);return d.startsWith("60")?"0"+d.slice(2):"+"+d}return e}
 const authErr=e=>{const m=(e&&e.message)||"";
-  if(/Invalid login/i.test(m))return"Email atau kata laluan salah.";
-  if(/already registered/i.test(m))return"Email ni dah didaftar. Cuba log masuk.";
+  if(/Invalid login/i.test(m))return"No. telefon / email atau kata laluan salah.";
+  if(/invalid.*email|email.*invalid/i.test(m))return"No. telefon tak sah. Contoh: 0123456789";
+  if(/already registered/i.test(m))return"Nombor / email ni dah didaftar. Cuba log masuk.";
   if(/Email not confirmed/i.test(m))return"Email belum disahkan. Semak inbox (atau folder spam).";
   if(/Kod tak sah/.test(m))return"Kod jemputan tak sah. Semak semula.";
   if(/penuh/.test(m))return"Diari ni dah ada dua orang.";
@@ -808,7 +819,7 @@ function gate(kind,msg){
   else if(kind==="error")body=`<p class="g-note">${esc(msg||"Tak dapat buka diari.")}</p><button class="btn" onclick="location.reload()">Cuba lagi</button>`;
   else if(kind==="msg")body=`<p class="g-note">${esc(msg)}</p><button class="btn" id="g-back">Log masuk</button>`;
   else if(kind==="login"||kind==="register"){const reg=kind==="register";
-    body=`<label class="lbl" for="g-email">Email</label><input class="inp" id="g-email" type="email" autocomplete="email" inputmode="email">
+    body=`<label class="lbl" for="g-email">No. telefon</label><input class="inp" id="g-email" type="text" autocomplete="username" inputmode="tel" placeholder="cth. 0123456789"><p class="small" style="margin-top:6px">Atau taip email kalau daftar guna email.</p>
       <label class="lbl" for="g-pw">Kata laluan</label><input class="inp" id="g-pw" type="password" autocomplete="${reg?"new-password":"current-password"}" placeholder="${reg?"Sekurang-kurangnya 6 aksara":""}">
       <p class="err" id="g-err"></p><button class="btn" id="g-go">${reg?"Daftar":"Log masuk"}</button>
       <button class="linkbtn g-switch" id="g-switch">${reg?"Dah ada akaun? Log masuk":"Belum ada akaun? Daftar"}</button>`}
@@ -830,8 +841,10 @@ function gate(kind,msg){
 }
 function closeGate(){const g=$("#gate");g.hidden=true;g.innerHTML="";document.body.style.overflow=""}
 async function doAuth(kind){
-  const email=$("#g-email").value.trim(),pw=$("#g-pw").value,err=$("#g-err"),btn=$("#g-go");
-  if(!email||pw.length<6){err.textContent="Masukkan email dan kata laluan (sekurang-kurangnya 6 aksara).";return}
+  const ident=$("#g-email").value.trim(),pw=$("#g-pw").value,err=$("#g-err"),btn=$("#g-go");
+  const email=identToEmail(ident);
+  if(!email){err.textContent="Masukkan no. telefon yang sah, contoh 0123456789.";return}
+  if(pw.length<6){err.textContent="Kata laluan sekurang-kurangnya 6 aksara.";return}
   btn.disabled=true;btn.textContent="Sekejap…";err.textContent="";
   try{
     if(kind==="login"){const r=await SB.auth.signInWithPassword({email,password:pw});if(r.error)throw r.error;S.uid=r.data.user.id;S.email=r.data.user.email}
@@ -1281,7 +1294,7 @@ function showMore(){
     <span class="lbl" style="margin-top:24px">Notifikasi</span><div id="m-push"><p class="small" style="margin-top:0">Menyemak…</p></div>
     <span class="lbl" style="margin-top:24px">Pasangan</span>
     ${S.partner?`<p class="small" style="margin-top:0">Diari ni dikongsi dengan ${S.partner.role==="suami"?"suami":"isteri"} awak.</p>`:`<p class="small" style="margin-top:0">Beri kod ni kepada pasangan. Dia daftar akaun, kemudian pilih “Sertai diari pasangan”.</p><div class="code" id="m-code">${esc(S.code||"")}</div><button class="btn soft" data-act="copycode" style="margin-top:10px">Salin kod</button>`}
-    <p class="small" id="m-store" style="margin-top:22px">Log masuk sebagai ${esc(S.email||"")}. Jurnal dan kitaran disimpan peribadi dalam akaun ni.</p><button class="btn danger" data-act="logout" style="margin-top:14px">Log keluar</button>`);
+    <p class="small" id="m-store" style="margin-top:22px">Log masuk sebagai ${esc(displayIdent(S.email))}. Jurnal dan kitaran disimpan peribadi dalam akaun ni.</p><button class="btn danger" data-act="logout" style="margin-top:14px">Log keluar</button>`);
   drawPush();
   $("#m-av").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
     try{const b=await shrink(f,500),id=await Store.upload(b),old=S.meta.avatar;await saveMeta({avatar:id});if(old)Store.rmAsset(old);closeSheet();toast("Gambar profil ditukar")}catch(err){toast("Tak dapat tukar gambar")}});
