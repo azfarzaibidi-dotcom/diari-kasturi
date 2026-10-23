@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Diari Kasturi">
-<meta name="theme-color" content="#fff7f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1e1417" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
@@ -19,7 +19,7 @@
 <style>
 /* Layout: one phone column on handmade paper — title row, one view per tab (plates, journal pages, photo calendar, "kita" hub), floating five-slot pill tab bar. */
 :root{
-  --bg:#fff7f8; --ink:#2e1a1e; --ink-2:#8a6d73; --chip:#fbe9ee; --chip-on:#f3d0da;
+  --bg:#ffffff; --bg2:#fbdbe4; --ink:#2e1a1e; --ink-2:#8a6d73; --chip:#fbe9ee; --chip-on:#f3d0da;
   --line:#f2dde3; --accent:#6e3a46; --accent-ink:#fff7f8; --sheet:#fffbfc; --card:#ffffff;
   --danger:#a8323a; --rose:#d4607a; --rose-soft:rgba(212,96,122,.2); --sage:#6f9467;
   --plate-shadow:rgba(120,60,75,.16); --scrim:rgba(60,25,35,.35);
@@ -29,23 +29,24 @@
   --f-hand:"Caveat", "Bradley Hand", "Segoe Print", cursive;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#1e1417; --ink:#f7e6ea; --ink-2:#c09ea6; --chip:#2d1f24; --chip-on:#4a3139;
+  --bg:#1e1417; --bg2:#33202a; --ink:#f7e6ea; --ink-2:#c09ea6; --chip:#2d1f24; --chip-on:#4a3139;
   --line:#3c2a30; --accent:#f0a9b8; --accent-ink:#2a1218; --sheet:#261a1e; --card:#2c1f23;
   --danger:#ef8a8f; --rose:#ec8aa0; --rose-soft:rgba(236,138,160,.25); --sage:#9cc08f;
   --plate-shadow:rgba(0,0,0,.55); --scrim:rgba(0,0,0,.55);
   --paper:var(--paper-d); color-scheme:dark;
 }}
 :root[data-theme="dark"]{
-  --bg:#1e1417; --ink:#f7e6ea; --ink-2:#c09ea6; --chip:#2d1f24; --chip-on:#4a3139;
+  --bg:#1e1417; --bg2:#33202a; --ink:#f7e6ea; --ink-2:#c09ea6; --chip:#2d1f24; --chip-on:#4a3139;
   --line:#3c2a30; --accent:#f0a9b8; --accent-ink:#2a1218; --sheet:#261a1e; --card:#2c1f23;
   --danger:#ef8a8f; --rose:#ec8aa0; --rose-soft:rgba(236,138,160,.25); --sage:#9cc08f;
   --plate-shadow:rgba(0,0,0,.55); --scrim:rgba(0,0,0,.55);
   --paper:var(--paper-d); color-scheme:dark;
 }
 *{box-sizing:border-box}
+body::before{content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; background:var(--paper), linear-gradient(180deg, var(--bg) 0%, var(--bg) 18%, var(--bg2) 100%)}
 [hidden]{display:none!important}
 html,body{min-height:100%}
-body{background:var(--bg); background-image:var(--paper); color:var(--ink); font-family:var(--f-body); font-size:16px; -webkit-tap-highlight-color:transparent}
+body{background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:16px; -webkit-tap-highlight-color:transparent}
 button{font:inherit; color:inherit; cursor:pointer}
 button:focus-visible,input:focus-visible,textarea:focus-visible,label:focus-within{outline:2px solid var(--accent); outline-offset:2px}
 .app{max-width:560px; margin:0 auto; padding-inline:18px; padding-block:18px 150px}
@@ -307,7 +308,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0; font-size:16px}
 img{max-width:100%}
 .app{padding-top:calc(18px + env(safe-area-inset-top,0px))}
-.gate{position:fixed; inset:0; z-index:30; background:var(--bg); background-image:var(--paper); overflow-y:auto; padding-inline:22px; padding-block:calc(36px + env(safe-area-inset-top,0px)) calc(36px + env(safe-area-inset-bottom,0px))}
+.gate{position:fixed; inset:0; z-index:30; background:var(--paper), linear-gradient(180deg, var(--bg) 0%, var(--bg) 18%, var(--bg2) 100%); overflow-y:auto; padding-inline:22px; padding-block:calc(36px + env(safe-area-inset-top,0px)) calc(36px + env(safe-area-inset-bottom,0px))}
 .gate-in{max-width:420px; margin:0 auto}
 .g-plate{width:132px; margin:0 auto 10px}
 .g-title{font-family:var(--f-display); font-weight:800; font-size:40px; letter-spacing:-.02em; text-align:center; margin:0}
@@ -490,20 +491,20 @@ function applyDoc(path,data){
 const ok=r=>{if(r&&r.error)throw r.error;return r?r.data:null};
 const Store={
   async set(col,id,data){
-    const row=col==="journal"?{id,user_id:S.uid,data,updated_at:new Date().toISOString()}:{id,space_id:S.space.id,data,updated_at:new Date().toISOString()};
+    const row=(col==="journal"||col==="dishes")?{id,user_id:S.uid,data,updated_at:new Date().toISOString()}:{id,space_id:S.space.id,data,updated_at:new Date().toISOString()};
     ok(await SB.from(col).upsert(row));
     const L=S[col],i=L.findIndex(x=>x.id===id);if(i>=0)L[i]={id,...data};else L.push({id,...data});render();
   },
   async update(col,id,patch){const cur=S[col].find(x=>x.id===id);if(!cur)return;const {id:_,...rest}=cur;return this.set(col,id,{...rest,...patch})},
   async del(col,id){ok(await SB.from(col).delete().eq("id",id));S[col]=S[col].filter(x=>x.id!==id);render()},
   async setDoc(path,data){
-    if(path==="meta/app")ok(await SB.from("spaces").update({meta:data}).eq("id",S.space.id));
+    if(path==="meta/app")ok(await SB.from("profiles").upsert({user_id:S.uid,meta:data,updated_at:new Date().toISOString()}));
     else if(path==="cycle")ok(await SB.from("cycles").upsert({user_id:S.uid,data,updated_at:new Date().toISOString()}));
     else if(path==="shared/cycle"){ok(await SB.from("shared_cycle").upsert({space_id:S.space.id,user_id:S.uid,data,updated_at:new Date().toISOString()}));return}
     applyDoc(path,data);render();
   },
   async upload(blob,priv){
-    const p=(priv?"u/"+S.uid:S.space.id)+"/"+uid()+".jpg";
+    const p="u/"+S.uid+"/"+uid()+".jpg";
     ok(await SB.storage.from(BUCKET).upload(p,blob,{contentType:"image/jpeg",cacheControl:"31536000"}));
     return p;
   },
@@ -512,17 +513,22 @@ const Store={
 };
 
 async function loadTable(t){
-  const q=t==="journal"?SB.from(t).select("id,data").eq("user_id",S.uid):SB.from(t).select("id,data").eq("space_id",S.space.id);
+  const q=(t==="journal"||t==="dishes")?SB.from(t).select("id,data").eq("user_id",S.uid):SB.from(t).select("id,data").eq("space_id",S.space.id);
   S[t]=(ok(await q)||[]).map(r=>({id:r.id,...r.data}));
 }
-async function loadMeta(){const r=ok(await SB.from("spaces").select("meta,join_code").eq("id",S.space.id).single());S.meta={...DEFAULT_META,...((r&&r.meta)||{})};S.code=r?r.join_code:""}
+async function loadMeta(){
+  const [sp,pr]=await Promise.all([SB.from("spaces").select("meta,join_code").eq("id",S.space.id).single(),SB.from("profiles").select("meta").eq("user_id",S.uid).maybeSingle()]);
+  const spm=(sp.data&&sp.data.meta)||{};S.code=sp.data?sp.data.join_code:"";
+  if(pr.error){S.meta={...DEFAULT_META,...spm};return}
+  S.meta={...DEFAULT_META,...(pr.data?pr.data.meta:{cats:spm.cats||DEFAULT_META.cats,myPlates:spm.myPlates||[]})};
+}
 async function loadShared(){const rows=ok(await SB.from("shared_cycle").select("user_id,data").eq("space_id",S.space.id))||[];const p=rows.find(r=>r.user_id!==S.uid);S.shared=p?{...p.data,by:p.user_id}:null}
 async function loadCycle(){const r=ok(await SB.from("cycles").select("data").eq("user_id",S.uid).maybeSingle());S.cycle=r?r.data:null}
 async function loadPartner(){const rows=ok(await SB.from("members").select("user_id,role").eq("space_id",S.space.id))||[];S.partner=rows.find(r=>r.user_id!==S.uid)||null}
 async function loadAll(){await Promise.all([...COLS.map(loadTable),loadMeta(),loadShared(),loadCycle(),loadPartner(),loadAppts(),loadMsgs(),loadReqs()]);render()}
 function subscribe(){
   const sid=S.space.id,ch=SB.channel("diari-"+sid),again=f=>()=>f().then(render).catch(()=>{});
-  ["dishes","wishes","letters"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t,filter:"space_id=eq."+sid},again(()=>loadTable(t))));
+  ["wishes","letters"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t,filter:"space_id=eq."+sid},again(()=>loadTable(t))));
   ch.on("postgres_changes",{event:"*",schema:"public",table:"shared_cycle",filter:"space_id=eq."+sid},again(loadShared));
   ch.on("postgres_changes",{event:"*",schema:"public",table:"appointments",filter:"space_id=eq."+sid},again(loadAppts));
   ch.on("postgres_changes",{event:"*",schema:"public",table:"messages",filter:"space_id=eq."+sid},again(loadMsgs));
@@ -809,6 +815,7 @@ const authErr=e=>{const m=(e&&e.message)||"";
   if(/Email not confirmed/i.test(m))return"Email belum disahkan. Semak inbox (atau folder spam).";
   if(/Kod tak sah/.test(m))return"Kod jemputan tak sah. Semak semula.";
   if(/penuh/.test(m))return"Diari ni dah ada dua orang.";
+  if(/pasangan dalam diari lain/.test(m))return"Awak dah ada pasangan dalam diari ni.";
   if(/Failed to fetch|NetworkError/i.test(m))return"Tak dapat sambung. Semak internet.";
   return m||"Ada masalah. Cuba lagi."};
 function gate(kind,msg){
@@ -824,9 +831,12 @@ function gate(kind,msg){
       <p class="err" id="g-err"></p><button class="btn" id="g-go">${reg?"Daftar":"Log masuk"}</button>
       <button class="linkbtn g-switch" id="g-switch">${reg?"Dah ada akaun? Log masuk":"Belum ada akaun? Daftar"}</button>`}
   else if(kind==="setup"){S.setupRole=S.setupRole||"isteri";
-    const roles=id=>`<div class="wrapchips" data-roles="${id}">${["isteri","suami"].map(r=>`<button class="chip" data-role="${r}" aria-pressed="${S.setupRole===r}">Saya ${r}</button>`).join("")}</div>`;
-    body=`<div class="g-card"><h2>Mula diari baru</h2><p class="small">Untuk orang pertama. Lepas tu kongsi kod jemputan dengan pasangan.</p>${roles("a")}<button class="btn" id="g-create">Mula diari</button></div>
-      <div class="g-card"><h2>Sertai diari pasangan</h2><p class="small">Masukkan kod jemputan dari pasangan (dalam ⋯ Tetapan).</p>${roles("b")}<label class="lbl" for="g-code">Kod jemputan</label><input class="inp" id="g-code" maxlength="6" autocapitalize="characters" placeholder="cth. A1B2C3" style="text-transform:uppercase;letter-spacing:.2em"><button class="btn" id="g-join">Sertai</button></div>
+    body=`<div class="g-card"><h2>Selamat datang</h2><p class="small">Awak siapa?</p>
+      <div class="wrapchips">${["isteri","suami"].map(r=>`<button class="chip" data-role="${r}" aria-pressed="${S.setupRole===r}">Saya ${r}</button>`).join("")}</div>
+      <label class="lbl" for="g-code">Kod pasangan (pilihan)</label>
+      <input class="inp" id="g-code" maxlength="6" autocapitalize="characters" placeholder="cth. A1B2C3" style="text-transform:uppercase;letter-spacing:.2em">
+      <p class="small">Kalau pasangan dah daftar, masukkan kod dari Tetapan dia untuk buka ruang bersama. Boleh juga buat kemudian. Hanya perlu sekali.</p>
+      <button class="btn" id="g-create">Masuk diari saya</button></div>
       <p class="err" id="g-err"></p><button class="linkbtn g-switch" id="g-out">Log keluar</button>`}
   g.innerHTML=`<div class="gate-in">${head}${body}</div>`;
   const on=(id,fn)=>{const el=$("#"+id);if(el)el.addEventListener("click",fn)};
@@ -834,8 +844,7 @@ function gate(kind,msg){
   on("g-back",()=>gate("login"));
   on("g-go",()=>doAuth(kind));
   on("g-out",async()=>{await SB.auth.signOut();location.reload()});
-  on("g-create",()=>doSpace("create"));
-  on("g-join",()=>doSpace("join"));
+  on("g-create",()=>doSpace());
   g.querySelectorAll("[data-role]").forEach(b=>b.addEventListener("click",()=>{S.setupRole=b.dataset.role;g.querySelectorAll("[data-role]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.role===S.setupRole))}));
   const pw=$("#g-pw");if(pw)pw.addEventListener("keydown",e=>{if(e.key==="Enter")doAuth(kind)});
 }
@@ -854,13 +863,15 @@ async function doAuth(kind){
     await enterSpace();
   }catch(e){err.textContent=authErr(e);btn.disabled=false;btn.textContent=kind==="login"?"Log masuk":"Daftar"}
 }
-async function doSpace(how){
-  const err=$("#g-err");err.textContent="";
+async function doSpace(){
+  const err=$("#g-err"),btn=$("#g-create"),code=($("#g-code").value||"").trim().toUpperCase();err.textContent="";
+  if(code&&code.length<6){err.textContent="Kod pasangan ada 6 aksara, atau biar kosong.";return}
+  btn.disabled=true;btn.textContent="Sekejap…";
   try{
-    if(how==="create"){const btn=$("#g-create");btn.disabled=true;ok(await SB.rpc("create_space",{r:S.setupRole,title:"diari kasturi"}))}
-    else{const code=$("#g-code").value.trim().toUpperCase();if(code.length<6){err.textContent="Kod jemputan ada 6 aksara.";return}$("#g-join").disabled=true;ok(await SB.rpc("join_space",{code,r:S.setupRole}))}
+    if(code)ok(await SB.rpc("join_space",{code,r:S.setupRole}));
+    else ok(await SB.rpc("create_space",{r:S.setupRole,title:"diari kasturi"}));
     await enterSpace();
-  }catch(e){err.textContent=authErr(e);["g-create","g-join"].forEach(id=>{const b=$("#"+id);if(b)b.disabled=false})}
+  }catch(e){err.textContent=authErr(e);btn.disabled=false;btn.textContent="Masuk diari saya"}
 }
 async function enterSpace(){
   const rows=ok(await SB.from("members").select("space_id,role").eq("user_id",S.uid).limit(1))||[];
@@ -1018,6 +1029,9 @@ function renderKalendar(){
     <div class="legend">${ci?`<span><i style="background:var(--rose-soft);border:2px solid var(--rose)"></i>Period</span><span><i style="border:2px dashed var(--rose)"></i>Jangkaan</span><span><i style="background:var(--sage);width:8px;height:8px"></i>Subur</span>`:""}<span><i style="outline:2px solid var(--ink);outline-offset:-2px"></i>Hari ni</span><span><i style="background:#5a7fb0;width:8px;height:8px"></i>Temujanji</span><span>Gambar = ada kenangan</span></div>`;
 }
 function renderKita(){
+  if(!S.partner){
+    $("#main").innerHTML=`<div class="g-card" style="margin-top:22px"><h2>Ruang bersama</h2><p class="small" style="margin-top:6px">Sembang, permintaan, surat, hajat dan temujanji bersama akan muncul di sini selepas awak sambung dengan pasangan. Hanya perlu sekali.</p><button class="btn rose" data-act="link">Sambung dengan pasangan</button></div>
+      <h2 class="h2">Rekap bulan</h2>${recapHTML()}`;return}
   const t=today(),mine=me();
   const L=[...S.letters].sort((a,b)=>{const ra=a.from!==mine,rb=b.from!==mine;if(ra!==rb)return ra?-1:1;return(b.createdAt||0)-(a.createdAt||0)});
   const letters=L.map(l=>{const recv=l.from!==mine,locked=recv&&l.openOn&&l.openOn>t,unread=recv&&!l.read&&!locked;
@@ -1292,14 +1306,23 @@ function showMore(){
     <span class="lbl" style="margin-top:24px">Pinggan saya</span>
     ${(S.meta.myPlates||[]).length?`<div class="myplates">${S.meta.myPlates.map(p=>`<div>${plateHTML(p)}<button data-act="delplate" data-k="${esc(pkey(p))}">Buang</button></div>`).join("")}</div>`:'<p class="small">Pinggan yang direka sendiri akan muncul di sini.</p>'}
     <span class="lbl" style="margin-top:24px">Notifikasi</span><div id="m-push"><p class="small" style="margin-top:0">Menyemak…</p></div>
-    <span class="lbl" style="margin-top:24px">Pasangan</span>
-    ${S.partner?`<p class="small" style="margin-top:0">Diari ni dikongsi dengan ${S.partner.role==="suami"?"suami":"isteri"} awak.</p>`:`<p class="small" style="margin-top:0">Beri kod ni kepada pasangan. Dia daftar akaun, kemudian pilih “Sertai diari pasangan”.</p><div class="code" id="m-code">${esc(S.code||"")}</div><button class="btn soft" data-act="copycode" style="margin-top:10px">Salin kod</button>`}
+    <span class="lbl" style="margin-top:24px">Ruang bersama</span>
+    ${partnerBlock()}
     <p class="small" id="m-store" style="margin-top:22px">Log masuk sebagai ${esc(displayIdent(S.email))}. Jurnal dan kitaran disimpan peribadi dalam akaun ni.</p><button class="btn danger" data-act="logout" style="margin-top:14px">Log keluar</button>`);
   drawPush();
   $("#m-av").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
     try{const b=await shrink(f,500),id=await Store.upload(b),old=S.meta.avatar;await saveMeta({avatar:id});if(old)Store.rmAsset(old);closeSheet();toast("Gambar profil ditukar")}catch(err){toast("Tak dapat tukar gambar")}});
   if(S.mode==="cloud"&&ASSETS)ASSETS.list().then(r=>{const u=r.usage,el=$("#m-store");if(u&&u.maxBytes&&el)el.textContent+=` Storan digunakan: ${(u.bytes/1048576).toFixed(1)} MB daripada ${(u.maxBytes/1048576).toFixed(0)} MB.`}).catch(()=>{});
 }
+function partnerBlock(){
+  if(S.partner)return `<p class="small" style="margin-top:0">Ruang bersama dah disambung dengan ${S.partner.role==="suami"?"suami":"isteri"} awak.</p>`;
+  return `<p class="small" style="margin-top:0">Sambung sekali sahaja untuk buka ruang bersama: sembang, permintaan, surat, hajat dan temujanji. Makan, jurnal dan kitaran tetap milik masing-masing.</p>
+    <span class="sub">Kod saya, beri kepada pasangan</span><div class="code" id="m-code">${esc(S.code||"")}</div><button class="btn soft" data-act="copycode" style="margin-top:10px">Salin kod</button>
+    <span class="sub" style="margin-top:18px">Atau masukkan kod pasangan</span>
+    <div class="wrapchips">${["isteri","suami"].map(r=>`<button type="button" class="chip" data-jrole="${r}" aria-pressed="${(S.role||"isteri")===r}">Saya ${r}</button>`).join("")}</div>
+    <div class="addrow" style="margin-top:10px"><input class="inp" id="m-join" maxlength="6" autocapitalize="characters" placeholder="Kod pasangan" style="text-transform:uppercase;letter-spacing:.15em"><button class="mini" data-act="join-other">Sambung</button></div><div id="m-joinbox"></div>`;
+}
+function showLink(){openSheet(`<h2>Sambung dengan pasangan</h2>${partnerBlock()}`)}
 function showTitle(){
   openSheet(`<h2>Nama diari</h2><label class="lbl" for="m-title">Nama</label><input class="inp" id="m-title" value="${esc(S.meta.title)}" maxlength="40" enterkeyhint="done"><button class="btn" data-act="savetitle">Simpan nama</button>`);
   const i=$("#m-title");i.addEventListener("keydown",e=>{if(e.key==="Enter")$("[data-act=savetitle]").click()});setTimeout(()=>{i.focus();i.select()},250);
@@ -1331,6 +1354,7 @@ document.addEventListener("click",async e=>{
   const ct=t.closest("[data-cat]:not([data-act])");if(ct&&F){F.cat=ct.dataset.cat;$("#f-newcat").hidden=true;$$("#f-cats [data-cat]").forEach(b=>b.setAttribute("aria-pressed",b===ct));return}
   const hb=t.closest("[data-heart]");if(hb&&F){const v=+hb.dataset.heart;F.rating=F.rating===v?0:v;$$("#f-hearts button").forEach(b=>b.classList.toggle("on",+b.dataset.heart<=F.rating));return}
   const md=t.closest("[data-mood]");if(md&&J){J.mood=J.mood===md.dataset.mood?"":md.dataset.mood;$$("#j-moods [data-mood]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mood===J.mood));return}
+  const jr=t.closest("[data-jrole]");if(jr){$$("[data-jrole]").forEach(b=>b.setAttribute("aria-pressed",b===jr));return}
   const kd=t.closest("[data-kind]");if(kd){S.wishKind=kd.dataset.kind;$$("#w-kinds [data-kind]").forEach(b=>b.setAttribute("aria-pressed",b===kd));return}
   const a=t.closest("[data-act]");if(!a)return;
   const act=a.dataset.act,id=a.dataset.id;
@@ -1374,6 +1398,16 @@ document.addEventListener("click",async e=>{
     case "day-appt":closeSheet();showApptForm(null,{date:a.dataset.d});break;
     case "add-appt":closeSheet();showApptForm(null);break;
     case "open-chat":openChat();break;
+    case "link":showLink();break;
+    case "join-other":{const code=$("#m-join").value.trim().toUpperCase(),box=$("#m-joinbox");
+      if(code.length<6){box.innerHTML=`<p class="err">Kod jemputan ada 6 aksara.</p>`;return}
+      if(code===S.code){box.innerHTML=`<p class="err">Itu kod diari awak sendiri. Masukkan kod dari telefon pasangan.</p>`;return}
+      const has=S.wishes.length+S.letters.length+S.msgs.length+S.reqs.length;
+      box.innerHTML=`<p class="small" style="color:var(--danger);font-weight:600">${has?"Hajat, surat dan sembang lama yang awak buat seorang akan dibuang. ":""}Makan, jurnal, kitaran dan temujanji awak tetap selamat. Sambung sekarang?</p><div class="btns"><button class="btn soft" data-act="nodel-join">Tak jadi</button><button class="btn" data-act="join-confirm" data-code="${esc(code)}">Ya, sambung</button></div>`;break}
+    case "nodel-join":$("#m-joinbox").innerHTML="";break;
+    case "join-confirm":{a.disabled=true;a.textContent="Sekejap…";const role=(document.querySelector("[data-jrole][aria-pressed=true]")||{}).dataset?.jrole||"isteri";
+      try{ok(await SB.rpc("join_space",{code:a.dataset.code,r:role}));toast("Ruang bersama disambung");setTimeout(()=>location.reload(),600)}
+      catch(e){a.disabled=false;a.textContent="Ya, sambung";$("#m-joinbox").innerHTML=`<p class="err">${esc(authErr(e))}</p>`}break}
     case "push-on":{a.disabled=true;a.textContent="Sekejap…";try{await enablePush();toast("Notifikasi dihidupkan");try{await testPush()}catch(e){}}catch(e){toast(e.message==="denied"?"Notifikasi disekat dalam Settings telefon":e.message==="dismissed"?"Tekan Allow untuk hidupkan":"Tak dapat hidupkan. Cuba lagi.")}drawPush();break}
     case "push-off":a.disabled=true;await disablePush();toast("Notifikasi dimatikan");drawPush();break;
     case "push-test":{a.disabled=true;try{const n=await testPush();toast(n?"Ujian dihantar, tunggu sekejap":"Tiada telefon berdaftar. Hidupkan semula.")}catch(e){toast("Ujian gagal. Pastikan fungsi notify dah di-deploy.")}a.disabled=false;break}
