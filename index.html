@@ -164,6 +164,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,label:focus-with
 .quick::-webkit-scrollbar{display:none}
 .quick .chip{padding:7px 13px; font-size:14px}
 .composer{display:flex; gap:8px; align-items:flex-end}
+.attach{flex:none; width:46px; height:46px; border-radius:50%; border:0; background:var(--chip); color:var(--accent); display:grid; place-items:center; cursor:pointer; position:relative}
+.attach svg{width:22px; height:22px}
+.attach input{position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer}
+.ppreview{display:flex; align-items:center; gap:10px; padding:8px; margin-bottom:8px; background:var(--chip); border-radius:16px}
+.ppreview img{width:64px; height:64px; object-fit:cover; border-radius:10px}
+.ppreview span{flex:1; min-width:0; font-size:13.5px; color:var(--ink-2)}
+.ppreview button{border:0; background:none; color:var(--danger); font-weight:700; font-size:14px; padding:6px}
+.bimg{display:block; width:100%; max-width:240px; min-height:80px; max-height:320px; object-fit:cover; border-radius:13px; margin:-3px -5px 4px; background:rgba(0,0,0,.06); cursor:zoom-in}
+.bub.photo{padding:6px 6px 6px}
+.bub.photo .bt{padding:0 6px}
+.bub.photo .bm{padding:0 6px}
+.viewer{position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.92); display:grid; place-items:center; padding:16px}
+.viewer img{max-width:100%; max-height:100%; object-fit:contain; border-radius:6px}
+.viewer button{position:absolute; top:calc(14px + env(safe-area-inset-top,0px)); right:14px; width:44px; height:44px; border-radius:50%; border:0; background:rgba(255,255,255,.18); color:#fff; font-size:26px; line-height:1}
 .composer .inp{flex:1; min-width:0; resize:none; min-height:46px; max-height:120px; border-radius:22px; padding:11px 16px; line-height:1.35}
 .send{flex:none; width:46px; height:46px; border-radius:50%; border:0; background:var(--accent); color:var(--accent-ink); display:grid; place-items:center}
 .send svg{width:20px; height:20px}
@@ -633,7 +647,9 @@ const RTYPES=[["beli","Tolong beli"],["ambil","Ambil / hantar"],["makan","Nak ma
 const RSTAT={baru:["Menunggu","var(--rose)"],terima:["Diterima","#5a7fb0"],siap:["Siap","var(--sage)"],tolak:["Tak boleh","var(--ink-2)"]};
 const rtype=k=>(RTYPES.find(t=>t[0]===k)||RTYPES[4])[1];
 async function loadMsgs(){
-  const r=await SB.from("messages").select("id,user_id,body,read,created_at").eq("space_id",S.space.id).order("created_at",{ascending:false}).limit(300);
+  let r=await SB.from("messages").select("id,user_id,body,photo,read,created_at").eq("space_id",S.space.id).order("created_at",{ascending:false}).limit(300);
+  S.chatPhoto=!r.error;
+  if(r.error)r=await SB.from("messages").select("id,user_id,body,read,created_at").eq("space_id",S.space.id).order("created_at",{ascending:false}).limit(300);
   if(r.error){S.msgsMissing=true;S.msgs=[];return}
   S.msgsMissing=false;S.msgs=(r.data||[]).reverse();
   if(S.chatOpen){drawChat();markRead()}
@@ -662,8 +678,20 @@ function drawChat(stick){
   if(!S.msgs.length)h=`<p class="chat-empty">Belum ada mesej. Mulakan dengan sapaan pada ${partnerWord()} awak.</p>`;
   S.msgs.forEach(m=>{const dl=dayLabel(m.created_at);if(dl!==cur){cur=dl;h+=`<div class="chat-day">${esc(dl)}</div>`}
     const mine=m.user_id===S.uid;
-    h+=`<div class="bub ${mine?"me":"them"}${m.pending?" pending":""}"><span class="bt">${esc(m.body)}</span><span class="bm">${hhmm(m.created_at)}${mine&&lastMine&&m.id===lastMine.id?(m.pending?" · menghantar":m.read?" · dibaca":" · dihantar"):""}</span></div>`});
+    const src=m.local||(m.photo?Store.src(m.photo):null);
+    h+=`<div class="bub ${mine?"me":"them"}${m.pending?" pending":""}${src?" photo":""}">${src?`<img class="bimg" src="${esc(src)}" alt="Gambar" data-view="${esc(m.id)}">`:""}${m.body?`<span class="bt">${esc(m.body)}</span>`:""}<span class="bm">${hhmm(m.created_at)}${mine&&lastMine&&m.id===lastMine.id?(m.pending?" · menghantar":m.read?" · dibaca":" · dihantar"):""}</span></div>`});
   box.innerHTML=h;if(near)box.scrollTop=box.scrollHeight;
+  if(near)box.querySelectorAll("img").forEach(i=>i.addEventListener("load",()=>{box.scrollTop=box.scrollHeight}));
+}
+let CHATPIC=null;
+function drawPicPreview(){
+  const el=$("#c-prev");if(!el)return;
+  el.innerHTML=CHATPIC?`<div class="ppreview"><img src="${esc(CHATPIC.url)}" alt=""><span>Tulis kapsyen (pilihan), kemudian tekan hantar</span><button type="button" data-act="pic-x">Buang</button></div>`:"";
+}
+function viewPhoto(id){
+  const m=S.msgs.find(x=>x.id===id);if(!m)return;const img=document.querySelector(`[data-view="${CSS.escape(id)}"]`);
+  const v=document.createElement("div");v.className="viewer";v.innerHTML=`<img src="${esc(img?img.src:"")}" alt="Gambar"><button aria-label="Tutup">×</button>`;
+  v.addEventListener("click",()=>v.remove());document.body.appendChild(v);
 }
 function openChat(){
   if(S.msgsMissing){toast("Jalankan tambah-sembang.sql dalam Supabase dahulu");return}
@@ -671,24 +699,32 @@ function openChat(){
   openSheet(`<div class="chat-head"><h2>Sembang dengan ${partnerWord()}</h2><button class="round" data-act="close-chat" aria-label="Tutup" style="width:40px;height:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="chatlist" id="chatlist"></div>
     <div class="quick" id="quick">${QUICK.map(q=>`<button type="button" class="chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-    <div class="composer"><textarea class="inp" id="c-msg" rows="1" maxlength="2000" placeholder="Tulis mesej…" enterkeyhint="send"></textarea><button class="send" data-act="send-msg" aria-label="Hantar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-7.5c.8-.4.8-1.5 0-1.8L3.4 3.6c-.7-.3-1.4.3-1.3 1l1.2 6.1 9.2 1.3-9.2 1.3-1.2 6.1c-.1.7.6 1.3 1.3 1z"/></svg></button></div>`,"chat");
-  drawChat(true);markRead();
+    <div id="c-prev"></div>
+    <div class="composer">${S.chatPhoto?`<label class="attach" aria-label="Hantar gambar"><input type="file" id="c-pic" accept="image/*"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-8 8"/></svg></label>`:""}<textarea class="inp" id="c-msg" rows="1" maxlength="2000" placeholder="Tulis mesej…" enterkeyhint="send"></textarea><button class="send" data-act="send-msg" aria-label="Hantar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-7.5c.8-.4.8-1.5 0-1.8L3.4 3.6c-.7-.3-1.4.3-1.3 1l1.2 6.1 9.2 1.3-9.2 1.3-1.2 6.1c-.1.7.6 1.3 1.3 1z"/></svg></button></div>`,"chat");
+  drawChat(true);markRead();CHATPIC=null;
+  const pic=$("#c-pic");if(pic)pic.addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+    try{const b=await shrink(f,1280);CHATPIC={blob:b,url:URL.createObjectURL(b)};drawPicPreview();$("#c-msg").focus()}catch(err){toast(err.message||"Gambar tak boleh dibuka")}});
   const ta=$("#c-msg");
   ta.addEventListener("input",()=>{ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,120)+"px"});
   ta.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMsg()}});
 }
 async function sendMsg(text){
-  const ta=$("#c-msg"),body=(text??(ta?ta.value:"")).trim();if(!body)return;
+  const ta=$("#c-msg"),body=(text??(ta?ta.value:"")).trim(),pic=text==null?CHATPIC:null;if(!body&&!pic)return;
   if(ta&&text==null){ta.value="";ta.style.height="auto";ta.focus()}
-  const m={id:uid(),user_id:S.uid,body,read:false,created_at:new Date().toISOString(),pending:true};
+  if(pic){CHATPIC=null;drawPicPreview()}
+  const m={id:uid(),user_id:S.uid,body,read:false,created_at:new Date().toISOString(),pending:true,local:pic?pic.url:null};
   S.msgs.push(m);drawChat(true);
-  try{ok(await SB.from("messages").insert({id:m.id,space_id:S.space.id,user_id:S.uid,body}));m.pending=false;drawChat()}
-  catch(e){S.msgs=S.msgs.filter(x=>x.id!==m.id);drawChat();if(ta&&!ta.value)ta.value=body;toast("Mesej tak dihantar. Semak internet.")}
+  try{
+    let photo=null;
+    if(pic){photo=S.space.id+"/chat/"+m.id+".jpg";ok(await SB.storage.from(BUCKET).upload(photo,pic.blob,{contentType:"image/jpeg",cacheControl:"31536000"}));}
+    const row={id:m.id,space_id:S.space.id,user_id:S.uid,body};if(photo)row.photo=photo;
+    ok(await SB.from("messages").insert(row));m.pending=false;m.photo=photo;drawChat();
+  }catch(e){S.msgs=S.msgs.filter(x=>x.id!==m.id);drawChat();if(ta&&!ta.value)ta.value=body;if(pic){CHATPIC=pic;drawPicPreview()}toast("Mesej tak dihantar. Semak internet.")}
 }
 function chatCard(){
   if(S.msgsMissing)return `<p class="small" style="margin-top:18px">Sembang belum diaktifkan. Jalankan tambah-sembang.sql dalam Supabase dahulu.</p>`;
   const last=S.msgs[S.msgs.length-1],n=unreadMsgs();
-  return `<button class="chatcard" data-act="open-chat"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg></span><span class="txt"><span class="t1">Sembang dengan ${partnerWord()}</span><span class="t2">${last?(last.user_id===S.uid?"Awak: ":"")+esc(last.body):"Mula sembang"}</span></span>${n?`<span class="nb">${n}</span>`:last?`<span class="t2" style="flex:none">${esc(hhmm(last.created_at))}</span>`:""}</button>`;
+  return `<button class="chatcard" data-act="open-chat"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg></span><span class="txt"><span class="t1">Sembang dengan ${partnerWord()}</span><span class="t2">${last?(last.user_id===S.uid?"Awak: ":"")+(last.body?esc(last.body):"Gambar"):"Mula sembang"}</span></span>${n?`<span class="nb">${n}</span>`:last?`<span class="t2" style="flex:none">${esc(hhmm(last.created_at))}</span>`:""}</button>`;
 }
 function reqRow(q){
   const st=RSTAT[q.status]||RSTAT.baru,mine=q.owner===S.uid;
@@ -1340,6 +1376,7 @@ document.addEventListener("click",async e=>{
   const f=t.closest("[data-f]");if(f){S.filter=f.dataset.f;render();return}
   const o=t.closest("[data-open]");if(o){showDetail(o.dataset.open);return}
   const jj=t.closest("[data-j]");if(jj){showJournal(jj.dataset.j);return}
+  const vw=t.closest("[data-view]");if(vw){viewPhoto(vw.dataset.view);return}
   const qk=t.closest("[data-quick]");if(qk){sendMsg(qk.dataset.quick);return}
   const rq=t.closest("[data-req]");if(rq){showReq(rq.dataset.req);return}
   const rt=t.closest("[data-rtype]");if(rt&&R){R.type=rt.dataset.rtype;$$("#r-types [data-rtype]").forEach(b=>b.setAttribute("aria-pressed",b===rt));return}
@@ -1398,6 +1435,7 @@ document.addEventListener("click",async e=>{
     case "day-appt":closeSheet();showApptForm(null,{date:a.dataset.d});break;
     case "add-appt":closeSheet();showApptForm(null);break;
     case "open-chat":openChat();break;
+    case "pic-x":CHATPIC=null;drawPicPreview();break;
     case "link":showLink();break;
     case "join-other":{const code=$("#m-join").value.trim().toUpperCase(),box=$("#m-joinbox");
       if(code.length<6){box.innerHTML=`<p class="err">Kod jemputan ada 6 aksara.</p>`;return}
